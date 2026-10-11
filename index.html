@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InfScore — Your influence, quantified</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 0; padding: 24px 12px; background: Canvas; color: CanvasText; }
+  .inf-root { max-width: 720px; margin: 0 auto; }
+  .inf-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+  .inf-brand { font-size: 24px; font-weight: 600; letter-spacing: 0.2px; }
+  .inf-brand span { color: #777; font-weight: 400; }
+  .inf-tag { font-size: 12px; color: #777; }
+  .inf-card { border: 1px solid #ccc; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+  .inf-card h2 { font-size: 15px; font-weight: 600; margin: 0 0 12px; }
+  .inf-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .inf-field label { display: block; font-size: 12px; color: #555; margin-bottom: 4px; }
+  .inf-field input, .inf-field select { width: 100%; box-sizing: border-box; border: 1px solid #bbb; border-radius: 10px; padding: 8px 10px; font-size: 14px; background: transparent; color: inherit; }
+  .inf-field input:focus, .inf-field select:focus { outline: 2px solid CanvasText; outline-offset: -1px; }
+  .inf-row { display: grid; grid-template-columns: 24px 130px 1fr 130px; gap: 8px; align-items: center; padding: 8px 0; border-top: 1px solid #ddd; }
+  .inf-row:first-of-type { border-top: none; }
+  .inf-num { font-size: 12px; color: #999; font-variant-numeric: tabular-nums; }
+  .inf-pname { font-size: 14px; font-weight: 600; }
+  .inf-row input { width: 100%; box-sizing: border-box; border: 1px solid #bbb; border-radius: 10px; padding: 7px 10px; font-size: 13px; background: transparent; color: inherit; }
+  .inf-row input:focus { outline: 2px solid CanvasText; outline-offset: -1px; }
+  .inf-follow { font-variant-numeric: tabular-nums; }
+  .inf-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .inf-metric { border: 1px solid #ccc; border-radius: 10px; padding: 12px; }
+  .inf-metric .k { font-size: 12px; color: #666; margin-bottom: 4px; }
+  .inf-metric .v { font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .inf-metric.score .v { color: #1a7f37; }
+  .inf-formula { font-size: 12px; color: #777; margin-top: 8px; }
+  .inf-actions { display: flex; gap: 8px; margin: 12px 0; }
+  .btn { border-radius: 10px; padding: 9px 16px; font-size: 14px; font-weight: 600; cursor: pointer; border: 1px solid CanvasText; }
+  .btn-primary { background: CanvasText; color: Canvas; }
+  .btn-ghost { background: transparent; color: CanvasText; border-color: #aaa; }
+  .btn:hover { opacity: 0.82; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .inf-error { display: none; font-size: 13px; color: #c0392b; margin: 0 0 12px; }
+  .inf-error.show { display: block; }
+  .inf-foot { display: flex; gap: 16px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
+  .inf-foot button { background: none; border: none; padding: 0; font-size: 13px; color: #555; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+  .inf-foot .copy { font-size: 12px; color: #999; width: 100%; text-align: center; margin-top: 4px; }
+  .modal-back { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+  .modal-back.open { display: flex; }
+  .modal { background: Canvas; border: 1px solid #bbb; border-radius: 12px; max-width: 560px; width: 100%; max-height: 75vh; overflow-y: auto; padding: 20px; }
+  .modal h3 { font-size: 16px; font-weight: 600; margin: 0 0 10px; }
+  .modal p, .modal li { font-size: 13px; line-height: 20px; color: #444; }
+  .modal h4 { font-size: 13px; font-weight: 600; margin: 14px 0 4px; }
+  .modal ul { padding-left: 18px; margin: 4px 0; }
+  .modal .close-row { display: flex; justify-content: flex-end; margin-top: 12px; }
+  @media (max-width: 560px) {
+    .inf-grid2, .inf-summary { grid-template-columns: 1fr; }
+    .inf-row { grid-template-columns: 20px 104px 1fr; }
+    .inf-follow { grid-column: 2 / 4; }
+  }
+</style>
+</head>
+<body>
+<div class="inf-root">
+  <div class="inf-head">
+    <div class="inf-brand">Inf<span>Score</span></div>
+    <div class="inf-tag">Your influence, quantified</div>
+  </div>
+
+  <div class="inf-card">
+    <h2>About you</h2>
+    <div class="inf-grid2">
+      <div class="inf-field">
+        <label for="f-name">Full name *</label>
+        <input id="f-name" type="text" placeholder="e.g. Ada Lovelace" autocomplete="name">
+      </div>
+      <div class="inf-field">
+        <label for="f-country">Country of origin *</label>
+        <select id="f-country">
+          <option value="">Select country…</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="inf-card">
+    <h2>Your platforms</h2>
+    <div id="platform-list"></div>
+  </div>
+
+  <p class="inf-error" id="form-error"></p>
+
+  <div class="inf-actions">
+    <button class="btn btn-primary" id="btn-calc">Calculate my InfScore</button>
+    <button class="btn btn-ghost" id="btn-pdf" disabled>Download PDF report</button>
+  </div>
+
+  <div class="inf-card" id="result-card" style="display:none;">
+    <h2>Your result</h2>
+    <div class="inf-summary">
+      <div class="inf-metric">
+        <div class="k">Total followers &amp; subscribers</div>
+        <div class="v" id="m-total">0</div>
+      </div>
+      <div class="inf-metric score">
+        <div class="k">InfScore (influence)</div>
+        <div class="v" id="m-score">0</div>
+      </div>
+    </div>
+    <div class="inf-formula" id="m-formula"></div>
+  </div>
+
+  <div class="inf-foot">
+    <button data-modal="modal-privacy">Privacy policy</button>
+    <button data-modal="modal-terms">Terms of use</button>
+    <button data-modal="modal-conditions">Terms &amp; conditions</button>
+    <div class="copy">© 2026 InfScore — front-end demo. All data stays in your browser.</div>
+  </div>
+</div>
+
+<div class="modal-back" id="modal-privacy">
+  <div class="modal">
+    <h3>Privacy policy</h3>
+    <p><em>Effective date: 1 January 2026</em></p>
+    <h4>1. Data we collect</h4>
+    <p>InfScore is a fully client-side tool. The information you enter — your name, country of origin, platform handles and follower or subscriber counts — is processed entirely within your web browser and is never transmitted to, or stored on, any server.</p>
+    <h4>2. No cookies or tracking</h4>
+    <p>InfScore does not set cookies, use analytics, fingerprint your device, or embed third-party trackers.</p>
+    <h4>3. Your PDF report</h4>
+    <p>The detailed PDF report is generated locally on your device. You choose where to save it and whom to share it with. InfScore has no access to the contents of your report.</p>
+    <h4>4. Data retention</h4>
+    <p>Because no personal data leaves your browser, there is nothing for us to retain, sell, or disclose. Clearing your browser data or refreshing the page permanently removes everything you entered.</p>
+    <h4>5. Third-party services</h4>
+    <p>If you navigate to external platforms referenced in the tool, their own privacy policies apply. InfScore is not responsible for the data practices of third-party services.</p>
+    <h4>6. Changes</h4>
+    <p>We may update this policy from time to time. The effective date above reflects the latest revision.</p>
+    <h4>7. Contact</h4>
+    <p>Questions about this policy can be sent to privacy@infscore.example.</p>
+    <div class="close-row"><button class="btn btn-ghost" data-close>Close</button></div>
+  </div>
+</div>
+
+<div class="modal-back" id="modal-terms">
+  <div class="modal">
+    <h3>Terms of use</h3>
+    <p><em>Effective date: 1 January 2026</em></p>
+    <h4>1. Acceptance</h4>
+    <p>By accessing or using InfScore, you agree to these Terms of Use. If you do not agree, please do not use the tool.</p>
+    <h4>2. The service</h4>
+    <p>InfScore calculates an "InfScore" equal to 1% of the combined total of your followers and subscribers across the listed social media platforms. The tool is provided for personal, informational and entertainment purposes only.</p>
+    <h4>3. Accuracy</h4>
+    <p>You are responsible for the accuracy of the numbers and handles you enter. An InfScore is only as accurate as the figures you supply, and follower counts change constantly.</p>
+    <h4>4. No endorsement</h4>
+    <p>InfScore is not affiliated with, sponsored by, or endorsed by any social media platform referenced. All platform names belong to their respective owners.</p>
+    <h4>5. Acceptable use</h4>
+    <p>You agree not to misuse the tool, misrepresent results, or present an InfScore as an official metric of any platform.</p>
+    <h4>6. Changes to the service</h4>
+    <p>InfScore may be modified, suspended or discontinued at any time without notice.</p>
+    <div class="close-row"><button class="btn btn-ghost" data-close>Close</button></div>
+  </div>
+</div>
+
+<div class="modal-back" id="modal-conditions">
+  <div class="modal">
+    <h3>Terms &amp; conditions</h3>
+    <p><em>Effective date: 1 January 2026</em></p>
+    <h4>1. Definitions</h4>
+    <ul>
+      <li>"Tool" means the InfScore website and calculator.</li>
+      <li>"User data" means any information entered into the tool by you.</li>
+      <li>"Report" means the PDF document generated by the tool.</li>
+    </ul>
+    <h4>2. License</h4>
+    <p>InfScore grants you a limited, non-exclusive, non-transferable license to use the tool for personal, non-commercial purposes.</p>
+    <h4>3. Intellectual property</h4>
+    <p>The InfScore name, design and underlying code are the property of InfScore. Reports you generate are yours: you may use and distribute them freely.</p>
+    <h4>4. Disclaimers</h4>
+    <p>The tool is provided "as is" and "as available", without warranties of any kind, express or implied, including accuracy, availability, fitness for a particular purpose and non-infringement.</p>
+    <h4>5. Limitation of liability</h4>
+    <p>To the maximum extent permitted by law, InfScore shall not be liable for any indirect, incidental, special or consequential damages arising from your use of the tool or reliance on any score or report.</p>
+    <h4>6. Indemnification</h4>
+    <p>You agree to indemnify and hold harmless InfScore from any claims arising out of your use of the tool or your reports.</p>
+    <h4>7. Governing law</h4>
+    <p>These terms are governed by the laws of the jurisdiction in which InfScore operates, without regard to conflict-of-law principles.</p>
+    <h4>8. Entire agreement</h4>
+    <p>These terms, together with the Privacy Policy and Terms of Use, constitute the entire agreement between you and InfScore regarding the tool.</p>
+    <div class="close-row"><button class="btn btn-ghost" data-close>Close</button></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var PLATFORMS = [
+    'Instagram', 'YouTube', 'TikTok', 'Facebook', 'X (Twitter)',
+    'LinkedIn', 'Snapchat', 'Pinterest', 'Reddit', 'Twitch'
+  ];
+  var COUNTRIES = ['Argentina','Australia','Brazil','Canada','China','Egypt','France','Germany','India','Indonesia','Italy','Japan','Kenya','Mexico','Netherlands','Nigeria','Norway','Pakistan','Philippines','Poland','Russia','Singapore','South Africa','South Korea','Spain','Sweden','Turkey','Ukraine','United Arab Emirates','United Kingdom','United States','Vietnam','Other'];
+
+  var countrySel = document.getElementById('f-country');
+  COUNTRIES.forEach(function (c) {
+    var o = document.createElement('option');
+    o.value = c; o.textContent = c;
+    countrySel.appendChild(o);
+  });
+
+  var list = document.getElementById('platform-list');
+  PLATFORMS.forEach(function (p, i) {
+    var row = document.createElement('div');
+    row.className = 'inf-row';
+    row.innerHTML =
+      '<div class="inf-num">' + (i + 1) + '</div>' +
+      '<div class="inf-pname">' + p + '</div>' +
+      '<input type="text" class="inf-handle" placeholder="@username / handle">' +
+      '<input type="text" inputmode="numeric" class="inf-follow" placeholder="Followers">';
+    list.appendChild(row);
+  });
+
+  document.querySelectorAll('.inf-follow').forEach(function (inp) {
+    inp.addEventListener('input', function () {
+      inp.value = inp.value.replace(/[^0-9]/g, '').replace(/^0+(?=\d)/, '');
+    });
+  });
+
+  function readState() {
+    var rows = [];
+    document.querySelectorAll('.inf-row').forEach(function (r) {
+      rows.push({
+        platform: r.querySelector('.inf-pname').textContent,
+        handle: r.querySelector('.inf-handle').value.trim(),
+        followers: parseInt(r.querySelector('.inf-follow').value || '0', 10)
+      });
+    });
+    return {
+      name: document.getElementById('f-name').value.trim(),
+      country: countrySel.value,
+      rows: rows,
+      total: rows.reduce(function (s, r) { return s + r.followers; }, 0)
+    };
+  }
+
+  function validate(state) {
+    if (!state.name) return 'Please enter your name.';
+    if (!state.country) return 'Please select your country of origin.';
+    if (state.rows.some(function (r) { return r.followers > 0 && !r.handle; }))
+      return 'Every platform with followers entered needs a username / handle.';
+    if (state.total === 0)
+      return 'Enter your followers or subscribers for at least one platform.';
+    return null;
+  }
+
+  var errEl = document.getElementById('form-error');
+  var resultCard = document.getElementById('result-card');
+  var btnPdf = document.getElementById('btn-pdf');
+  var lastState = null;
+
+  function fmt(n) { return n.toLocaleString('en-US'); }
+
+  document.getElementById('btn-calc').addEventListener('click', function () {
+    var state = readState();
+    var err = validate(state);
+    if (err) { errEl.textContent = err; errEl.classList.add('show'); return; }
+    errEl.classList.remove('show');
+    lastState = state;
+    var score = Math.round(state.total * 0.01);
+    document.getElementById('m-total').textContent = fmt(state.total);
+    document.getElementById('m-score').textContent = fmt(score);
+    document.getElementById('m-formula').textContent =
+      'InfScore = 1% of ' + fmt(state.total) + ' total followers & subscribers = ' + fmt(score) + '.';
+    resultCard.style.display = 'block';
+    btnPdf.disabled = false;
+  });
+
+  function pdfEsc(s) {
+    return s.replace(/[^\x20-\x7E]/g, '?')
+            .replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+  }
+  function wrap(s, max) {
+    var words = s.split(' '), lines = [], cur = '';
+    words.forEach(function (w) {
+      if ((cur + ' ' + w).trim().length > max) { lines.push(cur.trim()); cur = w; }
+      else cur = (cur ? cur + ' ' : '') + w;
+    });
+    if (cur.trim()) lines.push(cur.trim());
+    return lines.length ? lines : [''];
+  }
+  function buildPdf(state) {
+    var L = [];
+    L.push({ t: 'InfScore - Influence Report', f: 'F2', s: 20 });
+    L.push({ t: 'Generated on ' + new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), f: 'F1', s: 10 });
+    L.push({ t: ' ', f: 'F1', s: 6 });
+    L.push({ t: 'Name: ' + state.name, f: 'F1', s: 12 });
+    L.push({ t: 'Country of origin: ' + state.country, f: 'F1', s: 12 });
+    L.push({ t: ' ', f: 'F1', s: 6 });
+    L.push({ t: 'Platform breakdown', f: 'F2', s: 13 });
+    state.rows.forEach(function (r) {
+      var line = '  ' + r.platform + '  |  ' + (r.handle ? r.handle : '-') +
+                 '  |  ' + fmt(r.followers) + ' followers/subscribers';
+      wrap(line, 92).forEach(function (w) { L.push({ t: w, f: 'F1', s: 11 }); });
+    });
+    L.push({ t: ' ', f: 'F1', s: 6 });
+    L.push({ t: 'Total followers & subscribers: ' + fmt(state.total), f: 'F2', s: 12 });
+    L.push({ t: 'InfScore (1% of total): ' + fmt(Math.round(state.total * 0.01)), f: 'F2', s: 12 });
+    L.push({ t: ' ', f: 'F1', s: 6 });
+    L.push({ t: 'InfScore is calculated as 1% of the combined followers and subscribers', f: 'F1', s: 9 });
+    L.push({ t: 'across all listed platforms. Generated locally by InfScore.', f: 'F1', s: 9 });
+
+    var y = 800, stream = '';
+    L.forEach(function (l) {
+      y -= l.s * 1.45;
+      stream += 'BT /' + l.f + ' ' + l.s + ' Tf 1 0 0 1 60 ' + y + ' Tm (' + pdfEsc(l.t) + ') Tj ET\n';
+    });
+    var objs = [];
+    objs[1] = '<< /Type /Catalog /Pages 2 0 R >>';
+    objs[2] = '<< /Type /Pages /Kids [3 0 R] /Count 1 >>';
+    objs[3] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 4 0 R >>';
+    objs[4] = '<< /Length ' + stream.length + ' >>\nstream\n' + stream + 'endstream';
+    objs[5] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>';
+    objs[6] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>';
+
+    var pdf = '%PDF-1.4\n', offsets = [0];
+    for (var i = 1; i <= 6; i++) {
+      offsets[i] = pdf.length;
+      pdf += i + ' 0 obj\n' + objs[i] + '\nendobj\n';
+    }
+    var xref = pdf.length;
+    pdf += 'xref\n0 7\n0000000000 65535 f \n';
+    for (var j = 1; j <= 6; j++)
+      pdf += ('0000000000' + offsets[j]).slice(-10) + ' 00000 n \n';
+    pdf += 'trailer\n<< /Size 7 /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF';
+
+    var bytes = new Uint8Array(pdf.length);
+    for (var k = 0; k < pdf.length; k++) bytes[k] = pdf.charCodeAt(k) & 0xff;
+    return new Blob([bytes], { type: 'application/pdf' });
+  }
+
+  btnPdf.addEventListener('click', function () {
+    if (!lastState) return;
+    var blob = buildPdf(lastState);
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'InfScore-Report.pdf';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  });
+
+  document.querySelectorAll('[data-modal]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.getElementById(b.getAttribute('data-modal')).classList.add('open');
+    });
+  });
+  document.querySelectorAll('.modal-back').forEach(function (m) {
+    m.addEventListener('click', function (e) { if (e.target === m) m.classList.remove('open'); });
+    m.querySelector('[data-close]').addEventListener('click', function () { m.classList.remove('open'); });
+  });
+})();
+</script>
+</body>
+</html>
